@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spam Filter</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Spam Filter</h1>
+
+      <label class="toggle-row">
+        <input type="checkbox" id="minUsdEnabled" />
+        <span>Hide transfers under $</span>
+        <input type="number" id="minUsdValue" min="0" step="0.01" />
+      </label>
+
+      <label class="toggle-row">
+        <input type="checkbox" id="allowlistOnlyEnabled" />
+        <span>Show only allowlisted tokens</span>
+      </label>
+
+      <label for="allowlistInput" class="block-label">Token allowlist (comma-separated)</label>
+      <textarea id="allowlistInput" rows="4" placeholder="USDT,USDC"></textarea>
+
+      <button id="saveButton">Save</button>
+      <p id="status" aria-live="polite"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
