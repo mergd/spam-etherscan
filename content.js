@@ -225,6 +225,11 @@
       icon.height = 18;
       icon.style.marginTop = "2px";
       icon.style.flex = "0 0 auto";
+      icon.addEventListener("error", () => {
+        // If the page blocks chrome-extension:// images (or resource isn't web-accessible),
+        // avoid showing a broken image icon.
+        icon.remove();
+      });
       left.appendChild(icon);
     }
 

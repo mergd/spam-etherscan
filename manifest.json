@@ -3,6 +3,33 @@
   "name": "Spam Etherscan Filter",
   "version": "0.4.0",
   "description": "Filter spam transfers on Etherscan-family address views.",
+  "web_accessible_resources": [
+    {
+      "resources": ["icon.svg", "icon-128.png"],
+      "matches": [
+        "https://etherscan.io/*",
+        "https://*.etherscan.io/*",
+        "https://arbiscan.io/*",
+        "https://*.arbiscan.io/*",
+        "https://basescan.org/*",
+        "https://*.basescan.org/*",
+        "https://bscscan.com/*",
+        "https://*.bscscan.com/*",
+        "https://polygonscan.com/*",
+        "https://*.polygonscan.com/*",
+        "https://snowtrace.io/*",
+        "https://*.snowtrace.io/*",
+        "https://ftmscan.com/*",
+        "https://*.ftmscan.com/*",
+        "https://blastscan.io/*",
+        "https://*.blastscan.io/*",
+        "https://scrollscan.com/*",
+        "https://*.scrollscan.com/*",
+        "https://lineascan.build/*",
+        "https://*.lineascan.build/*"
+      ]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
