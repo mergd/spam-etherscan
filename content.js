@@ -162,15 +162,23 @@
     }
   }
 
-  function getIconUrl() {
-    try {
-      if (typeof chrome !== "undefined" && chrome.runtime && typeof chrome.runtime.getURL === "function") {
-        return chrome.runtime.getURL("icon.svg");
-      }
-    } catch {
-      // ignore
-    }
-    return "";
+  function createIconElement() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 128 128");
+    svg.setAttribute("width", "18");
+    svg.setAttribute("height", "18");
+    svg.style.flex = "0 0 auto";
+    svg.style.marginTop = "2px";
+    svg.innerHTML = '<g transform="translate(2.8, 0.6) scale(1.02)">'
+      + '<path d="m25.79 58.415a5.157 5.157 0 0 1 5.181-5.156l8.59.028a5.164 5.164 0 0 1 5.164 5.164v32.48c.967-.287 2.209-.593 3.568-.913a4.3 4.3 0 0 0 3.317-4.187v-40.291a5.165 5.165 0 0 1 5.164-5.165h8.607a5.165 5.165 0 0 1 5.164 5.165v37.393s2.155-.872 4.254-1.758a4.311 4.311 0 0 0 2.632-3.967v-44.578a5.164 5.164 0 0 1 5.163-5.164h8.606a5.164 5.164 0 0 1 5.164 5.164v36.71c7.462-5.408 15.024-11.912 21.025-19.733a8.662 8.662 0 0 0 1.319-8.092 60.792 60.792 0 0 0-58.141-40.829 60.788 60.788 0 0 0-51.99 91.064 7.688 7.688 0 0 0 7.334 3.8c1.628-.143 3.655-.346 6.065-.63a4.3 4.3 0 0 0 3.815-4.268z" fill="#21325b"/>'
+      + '<path d="m25.602 110.51a60.813 60.813 0 0 0 63.371 5.013 60.815 60.815 0 0 0 33.212-54.203c0-1.4-.065-2.785-.158-4.162-22.219 33.138-63.244 48.63-96.423 53.347" fill="#10B981"/>'
+      + '</g>'
+      + '<g>'
+      + '<path d="M98 76 L120 86 V100 C120 112 110 120 98 126 C86 120 76 112 76 100 V86 Z" fill="#21325b"/>'
+      + '<path d="M98 76 L76 86 V100 C76 112 86 120 98 126 V76Z" fill="#FFFFFF" opacity="0.08"/>'
+      + '<polyline points="87,99 95,107 110,92" stroke="#10B981" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+      + '</g>';
+    return svg;
   }
 
   function updateBannerContents(root) {
@@ -216,22 +224,7 @@
     left.style.gap = "10px";
     left.style.minWidth = "0";
 
-    const iconUrl = getIconUrl();
-    if (iconUrl) {
-      const icon = document.createElement("img");
-      icon.src = iconUrl;
-      icon.alt = "Spam Filter";
-      icon.width = 18;
-      icon.height = 18;
-      icon.style.marginTop = "2px";
-      icon.style.flex = "0 0 auto";
-      icon.addEventListener("error", () => {
-        // If the page blocks chrome-extension:// images (or resource isn't web-accessible),
-        // avoid showing a broken image icon.
-        icon.remove();
-      });
-      left.appendChild(icon);
-    }
+    left.appendChild(createIconElement());
 
     const copy = document.createElement("div");
     copy.style.minWidth = "0";
