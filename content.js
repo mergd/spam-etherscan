@@ -523,21 +523,67 @@
     }
   }
 
+  const observedIframes = new WeakSet();
+
+  function observeIframe(iframe) {
+    if (observedIframes.has(iframe)) return;
+    observedIframes.add(iframe);
+
+    const tryObserve = () => {
+      let doc;
+      try {
+        doc = iframe.contentDocument;
+      } catch {
+        return;
+      }
+      if (!doc?.body) return;
+
+      const obs = new MutationObserver(() => {
+        scheduleApply();
+      });
+      obs.observe(doc.body, { childList: true, subtree: true });
+      scheduleApply();
+    };
+
+    iframe.addEventListener("load", tryObserve);
+    tryObserve();
+  }
+
+  function watchIframes() {
+    for (const iframe of document.querySelectorAll("iframe")) {
+      observeIframe(iframe);
+    }
+  }
+
+  let rafId = 0;
+  function scheduleApply() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => {
+      try {
+        applyFilter();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[spam-etherscan] applyFilter error", err);
+      }
+    });
+  }
+
   function setupObserver() {
     if (!document.body) return;
 
-    let rafId = 0;
-    const observer = new MutationObserver(() => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        try {
-          applyFilter();
-        } catch (err) {
-          // Never let an unexpected DOM edge-case permanently stop filtering.
-          // eslint-disable-next-line no-console
-          console.warn("[spam-etherscan] applyFilter error", err);
+    const observer = new MutationObserver((mutations) => {
+      scheduleApply();
+
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node.nodeName === "IFRAME") observeIframe(node);
+          if (node.querySelectorAll) {
+            for (const iframe of node.querySelectorAll("iframe")) {
+              observeIframe(iframe);
+            }
+          }
         }
-      });
+      }
     });
 
     observer.observe(document.body, {
@@ -545,6 +591,8 @@
       subtree: true,
       characterData: true,
     });
+
+    watchIframes();
   }
 
   function init() {
@@ -566,13 +614,17 @@
       }
     };
 
-    window.addEventListener("hashchange", safeApply);
+    const safeApplyWithRetries = () => {
+      safeApply();
+      setTimeout(safeApply, 300);
+      setTimeout(safeApply, 800);
+      setTimeout(safeApply, 2000);
+    };
+
+    window.addEventListener("hashchange", safeApplyWithRetries);
     window.addEventListener("load", safeApply);
 
-    // Initial pass + a couple of retries for late-rendered tables.
-    safeApply();
-    setTimeout(safeApply, 500);
-    setTimeout(safeApply, 1500);
+    safeApplyWithRetries();
 
     setupObserver();
   }
