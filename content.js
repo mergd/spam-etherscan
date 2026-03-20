@@ -4,6 +4,7 @@
   const INBOUND_ETH_DUST_THRESHOLD = 0.000001;
   const MIN_USD_TX_VALUE = 0.1;
   const BANNER_ID = "spam-etherscan-banner";
+  const TESTNET_HOST_PATTERN = /(^|[.-])(sepolia|holesky|goerli|kovan|rinkeby|ropsten|mumbai|amoy|fuji|testnet)(?=\.|$)/i;
   const DEBUG = (() => {
     try {
       return localStorage.getItem("spam-etherscan-debug") === "1";
@@ -114,6 +115,40 @@
     return DOMAIN_ALLOWLISTS.some((entry) => entry.hostPattern.test(hostname));
   }
 
+  function isTestnetHost(hostname = location.hostname) {
+    return TESTNET_HOST_PATTERN.test(hostname);
+  }
+
+  function isCaptchaPage() {
+    const title = String(document.title || "").toLowerCase();
+    if (title.includes("captcha")) return true;
+
+    const challengeSelectors = [
+      "iframe[src*=\"captcha\"]",
+      "iframe[src*=\"challenges.cloudflare.com\"]",
+      "input[name=\"cf-turnstile-response\"]",
+      "#challenge-running",
+      ".cf-turnstile",
+      ".h-captcha",
+      ".g-recaptcha",
+    ];
+    if (document.querySelector(challengeSelectors.join(","))) {
+      return true;
+    }
+
+    const bodyText = String(document.body?.innerText || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+    return (
+      bodyText.includes("verify you are human") ||
+      bodyText.includes("complete the security check") ||
+      bodyText.includes("press & hold to confirm you are a human") ||
+      bodyText.includes("please complete the captcha")
+    );
+  }
+
   function isSupportedPageContext() {
     if (location.pathname.startsWith("/address/")) return true;
 
@@ -127,7 +162,11 @@
     return false;
   }
 
-  if (!isSupportedHost(location.hostname) || !isSupportedPageContext()) {
+  function shouldShowBanner() {
+    return !isTestnetHost() && !isCaptchaPage();
+  }
+
+  if (isTestnetHost() || !isSupportedHost(location.hostname) || !isSupportedPageContext()) {
     return;
   }
 
@@ -141,8 +180,31 @@
     console.info("[spam-etherscan]", ...args);
   }
 
-  function unhideAllRows() {
+  function getHiddenRowsFromSameOriginDocuments() {
     const rows = Array.from(document.querySelectorAll(`tr[${HIDDEN_ATTR}="1"]`));
+    const iframes = Array.from(document.querySelectorAll("iframe"));
+
+    for (const iframe of iframes) {
+      let doc;
+      try {
+        doc = iframe.contentDocument;
+      } catch {
+        continue;
+      }
+      if (!doc) continue;
+
+      try {
+        rows.push(...doc.querySelectorAll(`tr[${HIDDEN_ATTR}="1"]`));
+      } catch {
+        // ignore frames with strange documents
+      }
+    }
+
+    return rows;
+  }
+
+  function unhideAllRows() {
+    const rows = getHiddenRowsFromSameOriginDocuments();
     for (const row of rows) {
       row.removeAttribute(HIDDEN_ATTR);
       row.hidden = false;
@@ -209,6 +271,7 @@
   function ensureBanner() {
     if (!document.body) return;
     if (bannerDismissed) return;
+    if (!shouldShowBanner()) return;
     if (document.getElementById(BANNER_ID)) return;
 
     const root = document.createElement("div");
@@ -297,6 +360,18 @@
       document.body.insertBefore(root, document.body.firstChild);
     } else {
       target.insertBefore(root, target.firstChild);
+    }
+  }
+
+  function syncBannerVisibility() {
+    const banner = document.getElementById(BANNER_ID);
+    if (!shouldShowBanner()) {
+      banner?.remove();
+      return;
+    }
+
+    if (window === window.top) {
+      ensureBanner();
     }
   }
 
@@ -560,6 +635,7 @@
     if (rafId) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(() => {
       try {
+        syncBannerVisibility();
         applyFilter();
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -604,9 +680,7 @@
 
     const safeApply = () => {
       try {
-        if (window === window.top) {
-          ensureBanner();
-        }
+        syncBannerVisibility();
         applyFilter();
       } catch (err) {
         // eslint-disable-next-line no-console
